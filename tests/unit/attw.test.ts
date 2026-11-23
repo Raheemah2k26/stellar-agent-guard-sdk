@@ -5,9 +5,13 @@
  * resolution algorithms, and confirms that mis-pathed declarations fail.
  */
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, it } from "node:test";
 import { runAttwCheck } from "../../scripts/check-attw.ts";
+
+const DIST_TYPES_PATH = resolve(process.cwd(), "dist/index.d.ts");
 
 describe("are the types wrong check (issue #501)", () => {
   it("@arethetypeswrong/cli is installed as devDependency and documented", async () => {
@@ -32,7 +36,14 @@ describe("are the types wrong check (issue #501)", () => {
     assert.match(ciYaml, /check:attw/, "CI workflow must run check:attw");
   });
 
-  it("check:attw passes on the packed tarball covering '.' and './fs'", () => {
+  it("check:attw passes on the packed tarball covering '.' and './fs'", (t) => {
+    if (!existsSync(DIST_TYPES_PATH)) {
+      // When unit tests run pre-build (e.g. in offline CI or before npm run build),
+      // skip packed tarball declaration verification; the dedicated check:attw CI step
+      // runs post-build.
+      t.skip("dist/index.d.ts not built yet (pre-build unit tests)");
+      return;
+    }
     const result = runAttwCheck({ throwOnError: false });
     assert.equal(result.success, true, `attw failed unexpectedly: ${result.output}`);
     assert.match(result.output, /stellar-agent-guard-sdk/);

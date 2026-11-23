@@ -18,7 +18,7 @@
  *   npm run build && npm run check:attw
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -44,6 +44,9 @@ export function runAttwCheck(options: { tarballPath?: string; throwOnError?: boo
 
   try {
     if (!tgzPath) {
+      if (!existsSync(resolve(ROOT, "dist/index.d.ts"))) {
+        runNpm(["run", "build"], ROOT);
+      }
       tempDir = mkdtempSync(join(tmpdir(), "guard-attw-pack-"));
       const packJson = runNpm(["pack", "--json", "--pack-destination", tempDir], ROOT);
       const parsed = JSON.parse(packJson) as PackResult[] | Record<string, PackResult>;
